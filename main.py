@@ -1,0 +1,44 @@
+from dotenv import load_dotenv
+from anthropic import Anthropic
+
+import sys
+import os
+
+load_dotenv()
+
+CHAT_MODEL = os.environ.get("CHAT_MODEL", "claude-sonnet-4-20250514")
+TEMPERATURE = float(os.environ.get("TEMPERATURE", "0.7"))
+MAX_TOKENS = int(os.environ.get("MAX_TOKENS", "1024"))
+
+
+def get_system_prompt():
+    """Read and return the contents of the system prompt from a text file."""
+    with open("./system-prompt.txt", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+system_prompt = get_system_prompt()
+client = Anthropic()
+
+messages = []
+try:
+    print("CLI LLM Chat started\n\nHow can I help you today?\n")
+    while True:
+        user_input = input("Enter something (Ctrl+C to exit): ")
+        messages.append({"role": "user", "content": user_input})
+        response = client.messages.create(
+            model=CHAT_MODEL,
+            max_tokens=MAX_TOKENS,
+            temperature=TEMPERATURE,
+            system=system_prompt,
+            messages=messages,
+        )
+        content = response.content[0].text
+        messages.append({"role": "assistant", "content": content})
+        print(f"\nAssistant: {content}\n")
+except KeyboardInterrupt:
+    print("\nExiting...")
+    sys.exit(0)
+except Exception as e:
+    print(f"An error occurred: {e}")
+    sys.exit(1)
