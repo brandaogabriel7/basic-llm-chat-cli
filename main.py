@@ -26,16 +26,25 @@ try:
     while True:
         user_input = input("Enter something (Ctrl+C to exit): ")
         messages.append({"role": "user", "content": user_input})
-        response = client.messages.create(
+
+        with client.messages.stream(
             model=CHAT_MODEL,
             max_tokens=MAX_TOKENS,
             temperature=TEMPERATURE,
             system=system_prompt,
             messages=messages,
-        )
-        content = response.content[0].text
-        messages.append({"role": "assistant", "content": content})
-        print(f"\nAssistant: {content}\n")
+        ) as stream:
+            print("Assistant: ")
+            for text in stream.text_stream:
+                print(text, end="", flush=True)
+
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": stream.get_final_text(),
+                }
+            )
+            print("\n")
 except KeyboardInterrupt:
     print("\nExiting...")
     sys.exit(0)
