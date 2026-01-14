@@ -1,8 +1,11 @@
+import os
+import sys
+
 from dotenv import load_dotenv
 from anthropic import Anthropic
-
-import sys
-import os
+from rich.console import Console
+from rich.live import Live
+from rich.markdown import Markdown
 
 load_dotenv()
 
@@ -10,11 +13,16 @@ CHAT_MODEL = os.environ.get("CHAT_MODEL", "claude-sonnet-4-20250514")
 TEMPERATURE = float(os.environ.get("TEMPERATURE", "0.7"))
 MAX_TOKENS = int(os.environ.get("MAX_TOKENS", "1024"))
 
+console = Console()
+
 
 def get_system_prompt():
     """Read and return the contents of the system prompt from a text file."""
-    with open("./system-prompt.txt", "r", encoding="utf-8") as f:
-        return f.read()
+    try:
+        with open("./system-prompt.txt", "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "You are a helpful assistant."
 
 
 system_prompt = get_system_prompt()
@@ -22,9 +30,14 @@ client = Anthropic()
 
 messages = []
 try:
-    print("CLI LLM Chat started\n\nHow can I help you today?\n")
+    console.print("[bold green]CLI LLM Chat started[/]\nHow can I help you today?")
     while True:
-        user_input = input("Enter something (Ctrl+C to exit): ")
+        user_input = console.input(
+            "\n[dim italic]Enter something (Ctrl+C to exit): [/]"
+        )
+        if not user_input.strip():
+            continue
+
         messages.append({"role": "user", "content": user_input})
 
         with client.messages.stream(
@@ -34,20 +47,19 @@ try:
             system=system_prompt,
             messages=messages,
         ) as stream:
-            print("Assistant: ")
-            for text in stream.text_stream:
-                print(text, end="", flush=True)
+            console.print("\nAssistant:\n", style="bold blue")
+            with Live(refresh_per_second=10) as live:
+                full_text = ""
+                for text in stream.text_stream:
+                    full_text += text
+                    live.update(Markdown(full_text))
 
             messages.append(
                 {
                     "role": "assistant",
-                    "content": stream.get_final_text(),
+                    "content": full_text,
                 }
             )
-            print("\n")
 except KeyboardInterrupt:
-    print("\nExiting...")
+    console.print("\nExiting...", style="yellow")
     sys.exit(0)
-except Exception as e:
-    print(f"An error occurred: {e}")
-    sys.exit(1)
