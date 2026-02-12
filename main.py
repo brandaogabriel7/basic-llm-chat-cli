@@ -3,11 +3,17 @@ import sys
 from rich.console import Console
 
 from chat import ChatSession
-from config import CHAT_MODEL, MAX_TOKENS, TEMPERATURE
+from config import CHAT_MODEL, MAX_TOKENS, STOP_SEQUENCES, TEMPERATURE, TOP_K, TOP_P
 
 console = Console()
 chat_session = ChatSession(
-    console, chat_model=CHAT_MODEL, temperature=TEMPERATURE, max_tokens=MAX_TOKENS
+    console,
+    chat_model=CHAT_MODEL,
+    temperature=TEMPERATURE,
+    max_tokens=MAX_TOKENS,
+    top_p=TOP_P,
+    top_k=TOP_K,
+    stop_sequences=STOP_SEQUENCES,
 )
 
 
